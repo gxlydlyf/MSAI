@@ -14,7 +14,9 @@ import pytz
 from tzlocal import get_localzone
 import re
 import socket
+import threading
 import win32api
+import win32con
 
 try:
     current_dir = os.getcwd()
@@ -121,6 +123,14 @@ try:
         else:
             # print("命令失败并出现错误。")
             return False
+
+
+    def show_message_box(message, title):
+        def show_message_box_():
+            win32api.MessageBox(0, message, title, win32con.MB_ICONINFORMATION)
+
+        message_thread = threading.Thread(target=show_message_box_)
+        message_thread.start()
 
 
     def execute_command(command):
@@ -275,10 +285,8 @@ try:
                         # 运行命令
                         os.system('cd /d "%s" && %s' % (server_path, command))
 
-                        def stop_server(signal_type):
-                            print('caught signal:', str(signal_type))
+                        show_message_box('您的服务器开启成功！！\n如要停止您的服务器，请在控制台输入“stop”', '')
 
-                        win32api.SetConsoleCtrlHandler(stop_server, True)
                         print('服务器启动成功！')
                     else:
                         print('服务器文件损坏，即将重新下载')
@@ -302,8 +310,6 @@ try:
 
     # 调用函数判断文件是否存在
     runserver()
-
-    time.sleep(5)
 
 except KeyboardInterrupt:
     # 在捕获到KeyboardInterrupt异常时执行的操作
