@@ -4,3 +4,7 @@ python
 test
 build
 Minecraft.spec
+test*.py
+dist/environment
+dist/log
+dist/server

@@ -14,6 +14,7 @@ import pytz
 from tzlocal import get_localzone
 import re
 import socket
+import win32api
 
 try:
     current_dir = os.getcwd()
@@ -37,7 +38,9 @@ try:
     eulaFile_path = server_path + "\\eula.txt"
     print('eula文件路径：', eulaFile_path)
     serverProperties_path = server_path + "\\server.properties"
-    print('server.properties文件路径：serverProperties_path')
+    print('server.properties文件路径：', serverProperties_path)
+    serverLog_path = current_dir + "\\log"
+    print('服务器日志文件路径：', serverLog_path)
 
     jdkDir_path = environment_path + "\\jdk17"
     print('Jdk文件路径：', jdkDir_path)
@@ -69,6 +72,7 @@ try:
 
     does_the_directory_exist(environment_path)
     does_the_directory_exist(server_path)
+    does_the_directory_exist(serverLog_path)
 
 
     def is_zipfile_complete(file_path):
@@ -245,6 +249,7 @@ try:
             print("JavaZip文件存在，即将解压")
             unzip_jdk()
             delete_file(javaZip_path)
+            runserver()
         else:
             if file_exists(javaFile_path):
                 print("Java17存在")
@@ -267,9 +272,13 @@ try:
                         command = '"%s" -jar %s nogui' % (javaFile_path, serverFile_path)
 
                         is_the_port_occupied()
-                        # 打开新的cmd窗口并运行命令
-                        subprocess.run('cd /d "%s"' % server_path, stdout=subprocess.PIPE, shell=True, encoding='utf-8')
-                        os.system(' start cmd.exe /K %s ' % command)
+                        # 运行命令
+                        os.system('cd /d "%s" && %s' % (server_path, command))
+
+                        def stop_server(signal_type):
+                            print('caught signal:', str(signal_type))
+
+                        win32api.SetConsoleCtrlHandler(stop_server, True)
                         print('服务器启动成功！')
                     else:
                         print('服务器文件损坏，即将重新下载')
@@ -298,5 +307,5 @@ try:
 
 except KeyboardInterrupt:
     # 在捕获到KeyboardInterrupt异常时执行的操作
-    print("按下了Ctrl+C，程序终止")
+    print("程序终止")
     sys.exit(0)
