@@ -38,6 +38,7 @@ VSVersionInfo(
         StringStruct('OriginalFilename', 'MinecraftServerAutomaticInstallation'),
         StringStruct('ProductName', 'MSAI'),
         StringStruct('ProductVersion', '1.5.5.5')
+        StringStruct('ProjectWebsite', 'https://github.com/gxlydlyf/MSAI')
         ])
       ]), 
     VarFileInfo([VarStruct('Translation', [2052, 1200])])
