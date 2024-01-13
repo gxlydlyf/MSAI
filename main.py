@@ -48,7 +48,7 @@ try:
     javaZip_path = environment_path + "\\jdk17.zip"
     print('JavaZip文件路径：', javaZip_path)
     javaDownload_path = \
-        "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586.zip"  # 使用了代理：https://hub.nuaa.cf
+        "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586.zip"
     print('JavaZip文件文件下载地址：', javaDownload_path)
 
 
