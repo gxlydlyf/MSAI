@@ -269,8 +269,8 @@ try:
                                 file.write("eula=true\n")
                             print('创建eula文件完成')
                         # 构建完整的命令字符串
-                        command = '"%s" -jar %s nogui' % (javaFile_path, serverFile_path)
-
+                        command = '"%s" -Xms1G -Xmx4G -jar "%s" nogui' % (javaFile_path, serverFile_path)
+                        print('服务器运行命令：', command)
                         is_the_port_occupied()
                         # 运行命令
                         os.system('cd /d "%s" && %s' % (server_path, command))
