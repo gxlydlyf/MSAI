@@ -1,5 +1,5 @@
-.idea/
-python/
-test/
-build/
+.idea
+python
+test
+build
 Minecraft.spec
