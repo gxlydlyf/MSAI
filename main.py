@@ -317,7 +317,6 @@ try:
                         print('服务器运行命令：', highlight_color(command))
                         # 构建完整的命令字符串
                         complete_startup_command = f'''  cd /d "{server_path}" && {command}  '''
-                        os.system(complete_startup_command)
                         print('完整启动命令', highlight_color(complete_startup_command))
 
                         show_message_box(
@@ -325,6 +324,7 @@ try:
                             '消息')
 
                         print('服务器启动成功！')
+                        os.system(complete_startup_command)
                     else:
                         print('服务器文件损坏，即将重新下载')
                         delete_file(serverFile_path)
