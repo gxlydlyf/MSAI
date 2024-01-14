@@ -40,7 +40,7 @@ try:
     # https://kkgithub.com/gxlydlyf/MSAI/raw/master/file/paper-1.20.4-381.jar 使用了代理：https://kkgithub.com
     paperServerFile_path = \
         "https://raw.nuaa.cf/gxlydlyf/MSAI/master/file/paper-1.20.4-381.jar"  # 使用了代理：https://hub.nuaa.cf
-    print('Paper服务器文件下载地址：', paperServerFile_path)
+    print('Paper服务器文件下载地址：', highlight_color(paperServerFile_path))
 
     serverFile_path = server_path + "\\server.jar"
     print('服务器启动文件路径：', highlight_color(serverFile_path))
