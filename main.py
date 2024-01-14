@@ -98,7 +98,7 @@ try:
     def unzip_jdk(
             zip_file=javaZip_path,
             extract_path=environment_path,
-            raw_folder_name='jdk-17.0.9',
+            raw_folder_name='jdk-17.0.9-full',
             new_folder_name='jdk17'
     ):
         if is_zipfile_complete(zip_file):
