@@ -4,7 +4,6 @@
 import os
 import subprocess
 import sys
-import time
 
 import requests
 from tqdm import tqdm
@@ -61,8 +60,8 @@ try:
     javaZip_path = environment_path + "\\jdk17.zip"
     print('JavaZip文件路径：', highlight_color(javaZip_path))
     javaDownload_path = \
-        "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586-full.zip"
-    # "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586.zip"
+        "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586.zip"
+    # "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586-full.zip"
 
     print('JavaZip文件文件下载地址：', highlight_color(javaDownload_path))
 
@@ -98,7 +97,7 @@ try:
     def unzip_jdk(
             zip_file=javaZip_path,
             extract_path=environment_path,
-            raw_folder_name='jdk-17.0.9-full',
+            raw_folder_name='jdk-17.0.9',
             new_folder_name='jdk17'
     ):
         if is_zipfile_complete(zip_file):
@@ -198,8 +197,9 @@ try:
         virtual_memory = psutil.virtual_memory()
         available_memory = virtual_memory.available
         max_memory = 4 * 1024 * 1024 * 1024  # 最大内存4G
-        if available_memory < max_memory:
-            return available_memory - 10000
+        free_memory = 1024 * 1024 * 10  # 留出10MB内存
+        if available_memory < (max_memory + free_memory):
+            return available_memory - free_memory
         else:
             return max_memory
 
@@ -312,14 +312,17 @@ try:
                             print('创建eula文件完成')
                         is_the_port_occupied()
                         # 运行命令
-                        command = f'""{javaFile_path}"" -Xmx{auto_memory()} -jar ""{serverFile_path}"" nogui'
+                        allocate_memory = auto_memory()
+                        command = f'"{javaFile_path}" -Xmx{allocate_memory} -jar "{serverFile_path}" nogui'
                         print('服务器运行命令：', highlight_color(command))
                         # 构建完整的命令字符串
-                        complete_startup_command = 'start cmd /K "cd /d ""%s"" && %s"' % (server_path, command)
+                        complete_startup_command = f'''  cd /d "{server_path}" && {command}  '''
                         os.system(complete_startup_command)
                         print('完整启动命令', highlight_color(complete_startup_command))
 
-                        show_message_box('您的服务器开启成功！！\n如要停止您的服务器，请在控制台输入“stop”', '')
+                        show_message_box(
+                            f'您的服务器开启成功！！\n为您分配了内存 {allocate_memory / 1024 / 1024}MB\n如要停止您的服务器，请在控制台输入“stop”',
+                            '消息')
 
                         print('服务器启动成功！')
                     else:
