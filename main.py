@@ -17,15 +17,22 @@ import socket
 import threading
 import win32api
 import win32con
+from color import create_terminal
 
 try:
+    def highlight_color(data):
+        return create_terminal(data=data, fg_color="黄色", bg_color="黑色", mode="加粗")
+
+
     current_dir = os.getcwd()
     current_path = os.path.abspath(current_dir)
-    print('当前目录：', current_path)
-    environment_path = current_path + "\\environment"
-    print('环境目录：', environment_path)
-    server_path = current_path + "\\server"
-    print('服务器目录：', server_path)
+    print('当前目录：', highlight_color(current_path))
+    deploy_path = current_path + "\\.MSAI"
+    print('配置目录：', highlight_color(deploy_path))
+    environment_path = deploy_path + "\\environment"
+    print('环境目录：', highlight_color(environment_path))
+    server_path = deploy_path + "\\server"
+    print('服务器目录：', highlight_color(server_path))
 
     run_restart = 0
 
@@ -36,25 +43,25 @@ try:
     print('Paper服务器文件下载地址：', paperServerFile_path)
 
     serverFile_path = server_path + "\\server.jar"
-    print('服务器启动文件路径：', serverFile_path)
+    print('服务器启动文件路径：', highlight_color(serverFile_path))
     eulaFile_path = server_path + "\\eula.txt"
-    print('eula文件路径：', eulaFile_path)
+    print('eula文件路径：', highlight_color(eulaFile_path))
     serverProperties_path = server_path + "\\server.properties"
-    print('server.properties文件路径：', serverProperties_path)
-    serverLog_path = current_dir + "\\log"
-    print('服务器日志文件路径：', serverLog_path)
+    print('server.properties文件路径：', highlight_color(serverProperties_path))
+    serverLog_path = deploy_path + "\\logs"
+    print('服务器日志文件路径：', highlight_color(serverLog_path))
 
     jdkDir_path = environment_path + "\\jdk17"
-    print('Jdk文件路径：', jdkDir_path)
+    print('Jdk文件路径：', highlight_color(jdkDir_path))
     javaFile_path = jdkDir_path + "\\bin\\java.exe"
-    print('Java文件路径：', javaFile_path)
+    print('Java文件路径：', highlight_color(javaFile_path))
     jarFile_path = jdkDir_path + "\\bin\\jar.exe"
-    print('Jar文件路径：', jarFile_path)
+    print('Jar文件路径：', highlight_color(jarFile_path))
     javaZip_path = environment_path + "\\jdk17.zip"
-    print('JavaZip文件路径：', javaZip_path)
+    print('JavaZip文件路径：', highlight_color(javaZip_path))
     javaDownload_path = \
         "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586.zip"
-    print('JavaZip文件文件下载地址：', javaDownload_path)
+    print('JavaZip文件文件下载地址：', highlight_color(javaDownload_path))
 
 
     def file_exists(file_path):
@@ -242,6 +249,18 @@ try:
                     print("服务器端口不是有效的数字。")
             else:
                 print("在 server.properties 文件中找不到服务器端口。")
+                with open(serverProperties_path, "a") as file:
+                    file.write("\nserver-port=25565\n")
+                print("在 server.properties 中写入了25565端口")
+                is_the_port_occupied()
+        else:
+            # 打开文件并写入内容
+            with open(serverProperties_path, "w") as file:
+                file.write("#Minecraft server properties")
+                file.write("#%s\n" % create_time())
+                file.write("server-port=25565\n")
+            print('创建server.properties文件完成')
+            is_the_port_occupied()
 
 
     # 执行cmd命令并获取输出结果
@@ -278,12 +297,14 @@ try:
                                 file.write("#%s\n" % create_time())
                                 file.write("eula=true\n")
                             print('创建eula文件完成')
-                        # 构建完整的命令字符串
-                        command = '"%s" -Xms1G -Xmx4G -jar "%s" nogui' % (javaFile_path, serverFile_path)
-                        print('服务器运行命令：', command)
                         is_the_port_occupied()
                         # 运行命令
-                        os.system('cd /d "%s" && %s' % (server_path, command))
+                        command = '""%s"" -jar ""%s"" nogui' % (javaFile_path, serverFile_path)
+                        print('服务器运行命令：', highlight_color(command))
+                        # 构建完整的命令字符串
+                        complete_startup_command = 'start cmd /K "cd /d ""%s"" && %s"' % (server_path, command)
+                        os.system(complete_startup_command)
+                        print('完整启动命令', highlight_color(complete_startup_command))
 
                         show_message_box('您的服务器开启成功！！\n如要停止您的服务器，请在控制台输入“stop”', '')
 
