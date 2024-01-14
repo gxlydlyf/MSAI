@@ -18,6 +18,7 @@ import threading
 import win32api
 import win32con
 from color import create_terminal
+import psutil
 
 try:
     def highlight_color(data):
@@ -39,7 +40,7 @@ try:
     # https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/381/downloads/paper-1.20.4-381.jar 原版链接
     # https://kkgithub.com/gxlydlyf/MSAI/raw/master/file/paper-1.20.4-381.jar 使用了代理：https://kkgithub.com
     paperServerFile_path = \
-        "https://raw.nuaa.cf/gxlydlyf/MSAI/master/file/paper-1.20.4-381.jar"  # 使用了代理：https://hub.nuaa.cf
+        "https://raw.nuaa.cf/gxlydlyf/MSAI/master/file/paper-1.20.4-385.jar"  # 使用了代理：https://hub.nuaa.cf
     print('Paper服务器文件下载地址：', highlight_color(paperServerFile_path))
 
     serverFile_path = server_path + "\\server.jar"
@@ -60,7 +61,9 @@ try:
     javaZip_path = environment_path + "\\jdk17.zip"
     print('JavaZip文件路径：', highlight_color(javaZip_path))
     javaDownload_path = \
-        "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586.zip"
+        "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586-full.zip"
+    # "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586.zip"
+
     print('JavaZip文件文件下载地址：', highlight_color(javaDownload_path))
 
 
@@ -191,6 +194,16 @@ try:
                         pbar.update(len(chunk))
 
 
+    def auto_memory():  # 返回单位 字节(bytes)
+        virtual_memory = psutil.virtual_memory()
+        available_memory = virtual_memory.available
+        max_memory = 4 * 1024 * 1024 * 1024  # 最大内存4G
+        if available_memory < max_memory:
+            return available_memory - 10000
+        else:
+            return max_memory
+
+
     def is_the_port_occupied():
         if file_exists(serverProperties_path):
             # 读取server.properties文件
@@ -299,7 +312,7 @@ try:
                             print('创建eula文件完成')
                         is_the_port_occupied()
                         # 运行命令
-                        command = '""%s"" -jar ""%s"" nogui' % (javaFile_path, serverFile_path)
+                        command = f'""{javaFile_path}"" -Xmx{auto_memory()} -jar ""{serverFile_path}"" nogui'
                         print('服务器运行命令：', highlight_color(command))
                         # 构建完整的命令字符串
                         complete_startup_command = 'start cmd /K "cd /d ""%s"" && %s"' % (server_path, command)
