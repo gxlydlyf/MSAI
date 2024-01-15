@@ -18,10 +18,21 @@ import win32api
 import win32con
 from color import create_terminal
 import psutil
+from system_bits import system_64_bits
+from system_bits import java_64_bits
+import shutil
 
 try:
     def highlight_color(data):
         return create_terminal(data=data, fg_color="黄色", bg_color="黑色", mode="加粗")
+
+
+    def red_highlight_color(data):
+        return create_terminal(data=data, fg_color="red", bg_color="黑色", mode="加粗")
+
+
+    def green_highlight_color(data):
+        return create_terminal(data=data, fg_color="white", bg_color="green", mode="加粗")
 
 
     current_dir = os.getcwd()
@@ -59,9 +70,42 @@ try:
     print('Jar文件路径：', highlight_color(jarFile_path))
     javaZip_path = environment_path + "\\jdk17.zip"
     print('JavaZip文件路径：', highlight_color(javaZip_path))
-    javaDownload_path = \
-        "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586.zip"
-    # "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586-full.zip"
+
+
+    def show_message_box(message, title):
+        def show_message_box_():
+            win32api.MessageBox(0, message, title, win32con.MB_ICONINFORMATION)
+
+        message_thread = threading.Thread(target=show_message_box_)
+        message_thread.start()
+
+
+    def delete_folder(folder_path):
+        try:
+            # 删除文件夹
+            shutil.rmtree(folder_path)
+            # print("文件夹删除成功")
+            return True
+        except OSError as e:
+            # print(f"文件夹删除失败: {e}")
+            return False
+
+
+    javaDownload_path = None
+    if system_64_bits():
+        javaDownload_path = \
+            "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-amd64-lite.zip"
+    else:
+        javaDownload_path = \
+            "https://download.bell-sw.com/java/17.0.9+11/bellsoft-jdk17.0.9+11-windows-i586-lite.zip"
+        print(create_terminal(""
+                              "当前是32位系统，最大运行可用堆将会被限制在 1G(1024MB)，如要取消限制：\n"
+                              "1.更改.MSAI里的配置文件取消限制（不建议这样做，可能会导致运行报错，可以尝试在3072之间调整）\n"
+                              "2.更换为64位系统",
+                              fg_color="black",
+                              bg_color="red",
+                              mode="underline"
+                              ))
 
     print('JavaZip文件文件下载地址：', highlight_color(javaDownload_path))
 
@@ -97,7 +141,7 @@ try:
     def unzip_jdk(
             zip_file=javaZip_path,
             extract_path=environment_path,
-            raw_folder_name='jdk-17.0.9',
+            raw_folder_name='jdk-17.0.9-lite',
             new_folder_name='jdk17'
     ):
         if is_zipfile_complete(zip_file):
@@ -121,6 +165,24 @@ try:
             print('不是完整的zip文件')
 
 
+    def check_java_installation(java_path):
+        try:
+            # 执行java命令，获取java版本信息
+            result_java = subprocess.run([f'"{java_path}"', '-version'], capture_output=True, text=True)
+            if result_java.returncode == 0:
+                # Java安装完整，输出版本信息
+                print(result_java.stdout)
+                return True
+            else:
+                # Java未安装或安装不完整
+                print(red_highlight_color("Java 未安装或安装不完整。"))
+                return False
+        except FileNotFoundError:
+            # 找不到java命令，Java未安装或安装不完整
+            print(red_highlight_color("Java 未安装或安装不完整。"))
+            return False
+
+
     def verify_jar_integrity(jar_path):
         command = "\"%s\" tf \"%s\"" % (jarFile_path, jar_path)
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -132,14 +194,6 @@ try:
         else:
             # print("命令失败并出现错误。")
             return False
-
-
-    def show_message_box(message, title):
-        def show_message_box_():
-            win32api.MessageBox(0, message, title, win32con.MB_ICONINFORMATION)
-
-        message_thread = threading.Thread(target=show_message_box_)
-        message_thread.start()
 
 
     def execute_command(command):
@@ -196,12 +250,14 @@ try:
     def auto_memory():  # 返回单位 字节(bytes)
         virtual_memory = psutil.virtual_memory()
         available_memory = virtual_memory.available
-        max_memory = 4 * 1024 * 1024 * 1024  # 最大内存4G
-        free_memory = 1024 * 1024 * 10  # 留出10MB内存
-        if available_memory < (max_memory + free_memory):
-            return available_memory - free_memory
+        max_memory = 1 * 1024 * 1024 * 1024  # 最大内存1G
+        if system_64_bits():
+            return ""
         else:
-            return max_memory
+            if available_memory < max_memory:
+                return available_memory
+            else:
+                return max_memory
 
 
     def is_the_port_occupied():
@@ -296,6 +352,23 @@ try:
             if file_exists(javaFile_path):
                 print("Java17存在")
 
+                if not check_java_installation(javaFile_path):
+                    delete_folder(jdkDir_path)
+                    runserver()
+
+                if java_64_bits(javaFile_path):
+                    if not system_64_bits():
+                        delete_folder(jdkDir_path)
+                        print(red_highlight_color('当前系统为64位，但是Java是32位，即将删除重新下载'))
+                        runserver()
+                        return
+                else:
+                    if system_64_bits():
+                        delete_folder(jdkDir_path)
+                        print(red_highlight_color('当前系统为32位，但是Java是64位，即将删除重新下载'))
+                        runserver()
+                        return
+
                 if file_exists(serverFile_path):
                     print("服务器文件存在，即将运行")
                     if verify_jar_integrity(serverFile_path):
@@ -313,30 +386,37 @@ try:
                         is_the_port_occupied()
                         # 运行命令
                         allocate_memory = auto_memory()
-                        command = f'"{javaFile_path}" -Xmx{allocate_memory} -jar "{serverFile_path}" nogui'
+                        allocate_memory_xmx = ''
+                        if allocate_memory != '':
+                            allocate_memory_xmx = f' -Xmx{auto_memory}'
+                        command = f'"{javaFile_path}"{allocate_memory_xmx} -jar "{serverFile_path}" nogui'
                         print('服务器运行命令：', highlight_color(command))
                         # 构建完整的命令字符串
                         complete_startup_command = f'''  cd /d "{server_path}" && {command}  '''
                         print('完整启动命令', highlight_color(complete_startup_command))
 
+                        if allocate_memory == '':
+                            allocate_memory_str = "自适应"
+                        else:
+                            allocate_memory_str = str(allocate_memory / 1024 / 1024) + 'MB'
                         show_message_box(
-                            f'您的服务器开启成功！！\n为您分配了内存 {allocate_memory / 1024 / 1024}MB\n如要停止您的服务器，请在控制台输入“stop”',
+                            f'您的服务器开启成功！！\n为您分配了内存 {allocate_memory_str}\n如要停止您的服务器，请在控制台输入“stop”',
                             '消息')
 
-                        print('服务器启动成功！')
+                        print(green_highlight_color('服务器启动成功！'))
                         os.system(complete_startup_command)
                     else:
-                        print('服务器文件损坏，即将重新下载')
+                        print(red_highlight_color('服务器文件损坏，即将重新下载'))
                         delete_file(serverFile_path)
                         download_file(paperServerFile_path, serverFile_path)
                         runserver()
                 else:
-                    print("服务器文件不存在，即将下载")
+                    print(red_highlight_color('服务器文件不存在，即将下载'))
                     download_file(paperServerFile_path, serverFile_path)
                     print("下载完成，即将运行")
                     runserver()
             else:
-                print("不存在Java17或Java17压缩包，即将下载")
+                print(red_highlight_color('不存在Java17或Java17压缩包，即将下载'))
                 download_file(javaDownload_path, javaZip_path)
                 print("下载Java17压缩包完成，即将解压")
                 unzip_jdk()
