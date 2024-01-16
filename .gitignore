@@ -4,8 +4,12 @@ python
 test
 build
 Minecraft.spec
-test*.py
+test_py/test*
+*/test*
+test*
 dist/environment
 dist/log
 dist/server
 DownloadCompleted
+.MSAI
+lib/chatgpt.txt

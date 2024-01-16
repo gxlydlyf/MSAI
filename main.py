@@ -16,24 +16,42 @@ import socket
 import threading
 import win32api
 import win32con
-from color import create_terminal
 import psutil
-from system_bits import system_64_bits
-from system_bits import java_64_bits
+from lib.color import create_terminal
+from lib.system_bits import system_64_bits
+from lib.system_bits import java_64_bits
+from lib.simple_configuration import SimpleConfiguration
+from lib.image import generate_ascii_art
 import shutil
+from art import text2art
 
+version = "2.0.0.1"
 try:
     def highlight_color(data):
-        return create_terminal(data=data, fg_color="黄色", bg_color="黑色", mode="加粗")
+        return create_terminal(data=data, fg_color="yellow", bg_color="black", mode="bold")
 
 
     def red_highlight_color(data):
-        return create_terminal(data=data, fg_color="red", bg_color="黑色", mode="加粗")
+        return create_terminal(data=data, fg_color="red", bg_color="black", mode="bold")
 
 
     def green_highlight_color(data):
-        return create_terminal(data=data, fg_color="white", bg_color="green", mode="加粗")
+        return create_terminal(data=data, fg_color=47, bg_color="green", mode="bold")
 
+
+    def yellow_highlight_color(data):
+        return create_terminal(data=data, fg_color=47, bg_color="yellow", mode="bold")
+
+
+    print(create_terminal('', fg_color=47, bg_color="yellow", mode="bold", reset_terminal=False))
+    print(generate_ascii_art(os.path.dirname(os.path.abspath(__file__))+'/icon/icons8-minecraft-512.png', height='width', black_pixel=' '))
+    print(text2art(text='MSAI'))
+    print(text2art("version:" + version))
+    print("""
+    项目:https://github.com/gxlydlyf/MSAI
+    欢迎使用此启动器，如果您需要新功能或出现问题，请在 issues(https://github.com/gxlydlyf/MSAI/issues)寻求帮助！
+    """)
+    print(yellow_highlight_color(''))
 
     current_dir = os.getcwd()
     current_path = os.path.abspath(current_dir)
@@ -46,6 +64,22 @@ try:
     print('服务器目录：', highlight_color(server_path))
 
     run_restart = 0
+
+    user_config = SimpleConfiguration(
+        {
+            "#1": "这是“游戏版本”的配置，默认为1.20.4，您可以设置为其他的值",
+            "游戏版本": "1.20.4",
+            "#2": "这是“最大内存”的配置，可以设定服务器最大使用的内存(只能为整数)，默认为空(即无限制，32位系统限制1G)，以下设置效果相同(均为1024制)：\n"
+                  "# “4G”(单位：GB)\n"
+                  "# “4096M”(单位：MB)\n"
+                  "# “4194304K”(单位：KB)\n"
+                  "# “4294967296”(单位：bit)\n"
+                  "# 您可在“https://www.toolhelper.cn/Digit/ByteCalc”进行单位换算",
+            "最大内存": ""
+        },
+        absolute_path=deploy_path,
+        file_name="启动器配置文件"
+    )
 
     # https://api.papermc.io/v2/projects/paper/versions/1.20.4/builds/381/downloads/paper-1.20.4-381.jar 原版链接
     # https://kkgithub.com/gxlydlyf/MSAI/raw/master/file/paper-1.20.4-381.jar 使用了代理：https://kkgithub.com
@@ -86,7 +120,7 @@ try:
             shutil.rmtree(folder_path)
             # print("文件夹删除成功")
             return True
-        except OSError as e:
+        except OSError:
             # print(f"文件夹删除失败: {e}")
             return False
 
@@ -168,10 +202,11 @@ try:
     def check_java_installation(java_path):
         try:
             # 执行java命令，获取java版本信息
-            result_java = subprocess.run([f'"{java_path}"', '-version'], capture_output=True, text=True)
+            command = f'"{java_path}" -version'
+            result_java = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            result_java.communicate()  # 等待进程执行完毕
             if result_java.returncode == 0:
                 # Java安装完整，输出版本信息
-                print(result_java.stdout)
                 return True
             else:
                 # Java未安装或安装不完整
@@ -184,15 +219,17 @@ try:
 
 
     def verify_jar_integrity(jar_path):
-        command = "\"%s\" tf \"%s\"" % (jarFile_path, jar_path)
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        stdout, stderr = process.communicate()
-
-        if process.returncode == 0:
-            # print("命令执行成功。")
-            return True
-        else:
-            # print("命令失败并出现错误。")
+        try:
+            command = f'"{jarFile_path}" tf "{jar_path}"'
+            process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            process.communicate()  # 等待进程执行完毕
+            if process.returncode == 0:
+                # print("命令执行成功。")
+                return True
+            else:
+                # print("命令失败并出现错误。")
+                return False
+        except FileNotFoundError:
             return False
 
 
@@ -248,6 +285,22 @@ try:
 
 
     def auto_memory():  # 返回单位 字节(bytes)
+        user_memory = str(user_config['最大内存']).lower()
+        pure_numbers_user_memory = re.sub(r'\D', '', user_memory)
+        if user_memory and pure_numbers_user_memory.isdigit():
+            pure_numbers_user_memory = int(pure_numbers_user_memory)
+            if re.match(r'^\d+$', user_memory):
+                return pure_numbers_user_memory
+            elif re.match(r'^\d+k$', user_memory):
+                return pure_numbers_user_memory * 1024  # 换算bit
+            elif re.match(r'^\d+m$', user_memory):
+                return pure_numbers_user_memory * 1024 * 1024  # 换算bit
+            elif re.match(r'^\d+g$', user_memory):
+                return pure_numbers_user_memory * 1024 * 1024 * 1024  # 换算bit
+            else:
+                user_config['最大内存'] = ''
+                print(red_highlight_color('用户配置的“最大内存”不符合规定\n已恢复默认设置'))
+        print('自动配置内存')
         virtual_memory = psutil.virtual_memory()
         available_memory = virtual_memory.available
         max_memory = 1 * 1024 * 1024 * 1024  # 最大内存1G
@@ -348,81 +401,80 @@ try:
             unzip_jdk()
             delete_file(javaZip_path)
             runserver()
-        else:
-            if file_exists(javaFile_path):
-                print("Java17存在")
+        elif file_exists(javaFile_path) and check_java_installation(javaFile_path):
+            print("Java17存在")
 
-                if not check_java_installation(javaFile_path):
+            if java_64_bits(javaFile_path):
+                if not system_64_bits():
                     delete_folder(jdkDir_path)
+                    print(red_highlight_color('当前系统为64位，但是Java是32位，即将删除重新下载'))
                     runserver()
+                    return
+            else:
+                if system_64_bits():
+                    delete_folder(jdkDir_path)
+                    print(red_highlight_color('当前系统为32位，但是Java是64位，即将删除重新下载'))
+                    runserver()
+                    return
 
-                if java_64_bits(javaFile_path):
-                    if not system_64_bits():
-                        delete_folder(jdkDir_path)
-                        print(red_highlight_color('当前系统为64位，但是Java是32位，即将删除重新下载'))
-                        runserver()
-                        return
-                else:
-                    if system_64_bits():
-                        delete_folder(jdkDir_path)
-                        print(red_highlight_color('当前系统为32位，但是Java是64位，即将删除重新下载'))
-                        runserver()
-                        return
+            if file_exists(serverFile_path):
+                print("服务器文件存在，即将运行")
+                if verify_jar_integrity(serverFile_path):
+                    if not file_exists(eulaFile_path):
+                        # 打开文件并写入内容
+                        with open(eulaFile_path, "w") as file:
+                            file.write(
+                                "#By changing the setting below to TRUE you are indicating "
+                                "your agreement to our EULA "
+                                "(https://aka.ms/MinecraftEULA).\n"
+                            )
+                            file.write("#%s\n" % create_time())
+                            file.write("eula=true\n")
+                        print('创建eula文件完成')
+                    is_the_port_occupied()
+                    # 运行命令
+                    allocate_memory = auto_memory()
+                    allocate_memory_xmx = ''
+                    if allocate_memory != '':
+                        allocate_memory_xmx = f' -Xmx{allocate_memory}'
+                    command = f'"{javaFile_path}"{allocate_memory_xmx} -jar "{serverFile_path}" nogui'
+                    print('服务器运行命令：', highlight_color(command))
+                    # 构建完整的命令字符串
+                    complete_startup_command = f'''  cd /d "{server_path}" && {command}  '''
+                    print('完整启动命令', highlight_color(complete_startup_command))
 
-                if file_exists(serverFile_path):
-                    print("服务器文件存在，即将运行")
-                    if verify_jar_integrity(serverFile_path):
-                        if not file_exists(eulaFile_path):
-                            # 打开文件并写入内容
-                            with open(eulaFile_path, "w") as file:
-                                file.write(
-                                    "#By changing the setting below to TRUE you are indicating "
-                                    "your agreement to our EULA "
-                                    "(https://aka.ms/MinecraftEULA).\n"
-                                )
-                                file.write("#%s\n" % create_time())
-                                file.write("eula=true\n")
-                            print('创建eula文件完成')
-                        is_the_port_occupied()
-                        # 运行命令
-                        allocate_memory = auto_memory()
-                        allocate_memory_xmx = ''
-                        if allocate_memory != '':
-                            allocate_memory_xmx = f' -Xmx{auto_memory}'
-                        command = f'"{javaFile_path}"{allocate_memory_xmx} -jar "{serverFile_path}" nogui'
-                        print('服务器运行命令：', highlight_color(command))
-                        # 构建完整的命令字符串
-                        complete_startup_command = f'''  cd /d "{server_path}" && {command}  '''
-                        print('完整启动命令', highlight_color(complete_startup_command))
-
-                        if allocate_memory == '':
-                            allocate_memory_str = "自适应"
-                        else:
-                            allocate_memory_str = str(allocate_memory / 1024 / 1024) + 'MB'
-                        show_message_box(
-                            f'您的服务器开启成功！！\n为您分配了内存 {allocate_memory_str}\n如要停止您的服务器，请在控制台输入“stop”',
-                            '消息')
-
-                        print(green_highlight_color('服务器启动成功！'))
-                        os.system(complete_startup_command)
+                    if allocate_memory == '':
+                        allocate_memory_str = "Java自适应"
                     else:
-                        print(red_highlight_color('服务器文件损坏，即将重新下载'))
-                        delete_file(serverFile_path)
-                        download_file(paperServerFile_path, serverFile_path)
-                        runserver()
+                        allocate_memory_str = str(allocate_memory / 1024 / 1024) + 'MB'
+
+                    print(green_highlight_color(
+                        "\n"
+                        f'您的服务器开启成功！！\n'
+                        f'为您分配了内存 {allocate_memory_str}\n'
+                        f'如要停止您的服务器，请在控制台输入“stop”'
+                        "\n"
+                    ))
+                    os.system(complete_startup_command)
                 else:
-                    print(red_highlight_color('服务器文件不存在，即将下载'))
+                    print(red_highlight_color('服务器文件损坏，即将重新下载'))
+                    delete_file(serverFile_path)
                     download_file(paperServerFile_path, serverFile_path)
-                    print("下载完成，即将运行")
                     runserver()
             else:
-                print(red_highlight_color('不存在Java17或Java17压缩包，即将下载'))
-                download_file(javaDownload_path, javaZip_path)
-                print("下载Java17压缩包完成，即将解压")
-                unzip_jdk()
-                print("解压完成")
-                delete_file(javaZip_path)
+                print(red_highlight_color('服务器文件不存在，即将下载'))
+                download_file(paperServerFile_path, serverFile_path)
+                print("下载完成，即将运行")
                 runserver()
+        else:
+            delete_folder(jdkDir_path)
+            print(red_highlight_color('不存在Java17或Java17压缩包，即将下载'))
+            download_file(javaDownload_path, javaZip_path)
+            print("下载Java17压缩包完成，即将解压")
+            unzip_jdk()
+            print("解压完成")
+            delete_file(javaZip_path)
+            runserver()
 
 
     # 调用函数判断文件是否存在
@@ -431,4 +483,4 @@ try:
 except KeyboardInterrupt:
     # 在捕获到KeyboardInterrupt异常时执行的操作
     print("程序终止")
-    sys.exit(0)
+    exit(0)

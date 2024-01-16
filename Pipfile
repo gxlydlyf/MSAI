@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.douban.com/simple/"
+verify_ssl = true
+name = "pip_conf_index_global"
+
+[packages]
+shell = "*"
+pyinstaller = "*"
+requests = "*"
+tqdm = "*"
+pytz = "*"
+tzlocal = "*"
+pywin32 = "*"
+psutil = "*"
+art = "*"
+pillow = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
